@@ -9,6 +9,11 @@ require (
 )
 
 require (
+	github.com/go-chi/cors v1.2.1
+	github.com/gorilla/websocket v1.5.3
+)
+
+require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
