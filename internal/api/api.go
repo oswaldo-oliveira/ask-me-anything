@@ -263,7 +263,57 @@ func (h apiHandler) handleCreateRoomMessage(w http.ResponseWriter, r *http.Reque
 		},
 	})
 }
-func (h apiHandler) handleGetRoomMessages(w http.ResponseWriter, r *http.Request)        {}
+func (h apiHandler) handleGetRoomMessages(w http.ResponseWriter, r *http.Request) {
+	rawRoomID := chi.URLParam(r, "room_id")
+	roomID, err := uuid.Parse(rawRoomID)
+	if err != nil {
+		http.Error(w, "Invalid room ID", http.StatusBadRequest)
+		return
+	}
+
+	messages, err := h.q.GetRoomMessages(r.Context(), roomID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			http.Error(w, "Room not found", http.StatusBadRequest)
+			return
+		}
+		slog.Error("failed to get messages", "error", err)
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	type response struct {
+		Messages []struct {
+			ID            string `json:"id"`
+			RoomID        string `json:"room_id"`
+			Message       string `json:"message"`
+			ReactionCount int64  `json:"reaction_count"`
+			Answered      bool   `json:"answered"`
+		}
+	}
+
+	var res response
+	for _, message := range messages {
+		res.Messages = append(res.Messages, struct {
+			ID            string `json:"id"`
+			RoomID        string `json:"room_id"`
+			Message       string `json:"message"`
+			ReactionCount int64  `json:"reaction_count"`
+			Answered      bool   `json:"answered"`
+		}{
+			ID:            message.ID.String(),
+			RoomID:        rawRoomID,
+			Message:       message.Message,
+			ReactionCount: message.ReactionCount,
+			Answered:      message.Answered,
+		})
+	}
+
+	data, _ := json.Marshal(res)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
 func (h apiHandler) handleGetRoomMessage(w http.ResponseWriter, r *http.Request)         {}
 func (h apiHandler) handleReactToMessage(w http.ResponseWriter, r *http.Request)         {}
 func (h apiHandler) handleMarkMessageAsAnswered(w http.ResponseWriter, r *http.Request)  {}
