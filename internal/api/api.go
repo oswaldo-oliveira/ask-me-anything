@@ -353,6 +353,34 @@ func (h apiHandler) handleGetRoomMessage(w http.ResponseWriter, r *http.Request)
 	w.Write(data)
 }
 
-func (h apiHandler) handleReactToMessage(w http.ResponseWriter, r *http.Request)         {}
+func (h apiHandler) handleReactToMessage(w http.ResponseWriter, r *http.Request) {
+	rawMessageID := chi.URLParam(r, "message_id")
+	messageID, err := uuid.Parse(rawMessageID)
+	if err != nil {
+		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+		return
+	}
+
+	count, err := h.q.ReactToMessage(r.Context(), messageID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			http.Error(w, "Message not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to get room message", "error", err)
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	type response struct {
+		Count int64 `json:"count"`
+	}
+
+	data, _ := json.Marshal(response{
+		Count: count,
+	})
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
 func (h apiHandler) handleMarkMessageAsAnswered(w http.ResponseWriter, r *http.Request)  {}
 func (h apiHandler) handleRemoveReactFromMessage(w http.ResponseWriter, r *http.Request) {}
