@@ -179,7 +179,38 @@ func (h apiHandler) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
 }
-func (h apiHandler) handleGetRooms(w http.ResponseWriter, r *http.Request) {}
+
+func (h apiHandler) handleGetRooms(w http.ResponseWriter, r *http.Request) {
+	rooms, err := h.q.GetRooms(r.Context())
+	if err != nil {
+		slog.Error("failed to get rooms", "error", err)
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	type response struct {
+		Rooms []struct {
+			ID    string `json:"id"`
+			Theme string `json:"theme"`
+		} `json:"rooms"`
+	}
+
+	var res response
+	for _, room := range rooms {
+		res.Rooms = append(res.Rooms, struct {
+			ID    string `json:"id"`
+			Theme string `json:"theme"`
+		}{
+			ID:    room.ID.String(),
+			Theme: room.Theme,
+		})
+	}
+
+	data, _ := json.Marshal(res)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
 func (h apiHandler) handleCreateRoomMessage(w http.ResponseWriter, r *http.Request) {
 	rawRoomID := chi.URLParam(r, "room_id")
 	roomID, err := uuid.Parse(rawRoomID)
