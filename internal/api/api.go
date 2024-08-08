@@ -299,19 +299,17 @@ func (h apiHandler) handleGetRoomMessages(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	type response struct {
-		Messages []struct {
-			ID            string `json:"id"`
-			RoomID        string `json:"room_id"`
-			Message       string `json:"message"`
-			ReactionCount int64  `json:"reaction_count"`
-			Answered      bool   `json:"answered"`
-		}
+	type response []struct {
+		ID            string `json:"id"`
+		RoomID        string `json:"room_id"`
+		Message       string `json:"message"`
+		ReactionCount int64  `json:"reaction_count"`
+		Answered      bool   `json:"answered"`
 	}
 
 	var res response
 	for _, message := range messages {
-		res.Messages = append(res.Messages, struct {
+		res = append(res, struct {
 			ID            string `json:"id"`
 			RoomID        string `json:"room_id"`
 			Message       string `json:"message"`
